@@ -20,23 +20,30 @@ class Image_Gen {
 	function __construct() {
 		add_action( 'admin_menu', array( &$this, 'menu' ) );
 		add_action( 'wp_ajax_image_gen', array( &$this, 'image_gen_cb' ) );
+		add_action( 'wp_ajax_image_gen_defaults', array( &$this, 'image_gen_defaults_cb' ) );
+		$this->defaults = $this->get_defaults();
+	}
 
-	$this->defaults = array(
-			'width' => 150,
-			'height' => 150,
-			'lowgrey' => 120,
-			'highgrey' => 150,
-			'alpha' => 0,
-			'blurintensity' => 2,
-			'filename' => uniqid(),
+	function get_defaults() {
+		$core_defaults = array(
+				'width' => 150,
+				'height' => 150,
+				'lowgrey' => 120,
+				'highgrey' => 150,
+				'alpha' => 0,
+				'blurintensity' => 2,
+				'filename' => uniqid(),
 
-			'text' => array(),
-			'linespacing' => 10,
-			'textsize' => 40,
-			'font' => plugin_dir_path( __FILE__ ) . '/fonts/SourceSansPro-BoldIt.otf',
-			'fontcolor' => array(0, 80, 80),
-	);
+				'text' => array(),
+				'linespacing' => 10,
+				'textsize' => 40,
+				'font' => plugin_dir_path( __FILE__ ) . '/fonts/SourceSansPro-BoldIt.otf',
+				'fontcolor' => array(0, 80, 80),
+		);
 
+		// wp_parse_args( $core_defaults,  );
+		// return $core_defaults;
+		return get_option( 'image_gen_defaults', $core_defaults );
 	}
 
 	function menu() {
@@ -80,7 +87,9 @@ class Image_Gen {
 		}
 		?></select></label></p>
 		<p><label>Font color <input value="<?php echo $this->_convert_array_to_hex( $this->defaults['fontcolor'] ); ?>" name="gen[fontcolor]" type="text" class="colorpicker" /></label></p>
-		<?php submit_button(); ?>
+		<?php submit_button( 'Generate', 'primary', 'submit', false ); ?>
+		<?php // submit_button('Save options as default', 'small', 'save-defaults', false ); ?>
+<input type="submit" name="save-defaults" id="save-defaults" class="button button-small" value="Save options as default">
 		</form>
 
 		</div><?php
@@ -118,8 +127,7 @@ class Image_Gen {
 	/**
 	 * Ajax Callback
 	 *
-	 * Fix POST args as needed, pass along to creation function
-	 * Send back img html
+	 * Fix POST args as needed, Save as default.
 	 *
 	 * @return void
 	 */
@@ -141,6 +149,32 @@ class Image_Gen {
 	}
 
 	/**
+	 * Ajax Callback
+	 *
+	 * Fix POST args as needed, pass along to creation function
+	 * Send back img html
+	 *
+	 * @return void
+	 */
+	function image_gen_defaults_cb() {
+		parse_str( $_POST['args'], $args );
+		$args = $args['gen'];
+
+		// we separate our title from the rest here
+		$title = $args['title'];
+		unset( $args['title'] );
+
+		// coming from ajax, we'll have our color in the wrong format - fix it here
+		$args['fontcolor'] = $this->_convert_hex_to_array( $args['fontcolor'] );
+
+		$args = wp_parse_args( $args, $this->defaults );
+
+		update_option( 'image_gen_defaults', $args );
+
+		wp_send_json_success( $args );
+	}
+
+	/**
 	 * Create Image
 	 *
 	 * @param string $title Title of image in Media Library
@@ -151,7 +185,7 @@ class Image_Gen {
 
 		$name = sanitize_title( $title ). '.png';
 
-		$path = $this->generate_noise( $args );
+		$path = $this->build_image( $args );
 		$id = $this->move_to_wp( $path, $name, $title );
 
 		return $id;
@@ -181,41 +215,13 @@ class Image_Gen {
 
 	}
 
-	/* function get_image_args( $args ) {
-		$args = wp_parse_args( $args, $this->defaults );
-
-
-		// image
-		$args['width'] = intval( $args['width'] );
-		$args['height'] = intval( $args['height'] );
-		$args['lowgrey'] = intval( $args['lowgrey'] );
-		$args['highgrey'] = intval( $args['highgrey'] );
-		$args['alpha'] = intval( $args['alpha'] );
-		$args['blurintensity'] = intval( $args['blurintensity'] );
-		if ( count( explode('.', $args['filename'] ) ) < 2 ) $args['filename'] .= '.png';
-		$wp_upload_dir = wp_upload_dir();
-		$args['filename'] = trailingslashit( $wp_upload_dir['path'] ) . $args['filename'];
-
-		// text
-		$args['text'] = is_array( $args['text'] ) ? $args['text'] : explode( "\n", $args['text'] );
-		$args['text'] = array_map( 'trim', $text );
-		$args['text'] = array_filter( $text );
-		$args['linespacing'] = intval( $args['linespacing'] );
-			if ( count( $text ) < 2 ) $args['linespacing'] = 0;
-		$args['textsize'] = intval( $args['textsize'] );
-		$args['font'] = $args['font'];
-
-		return $args;
-
-	} */
-
 	/**
-	 * Generate a noisy image
+	 * Build image
 	 *
 	 * @param array $args Array of rules for the generated image
 	 * @return string Path of generated image
 	 */
-	function generate_noise( $args = array() ) {
+	function build_image( $args = array() ) {
 
 		$args = wp_parse_args( $args, /*array(
 			'width' => 150,
