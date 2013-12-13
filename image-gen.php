@@ -274,8 +274,8 @@ class Image_Gen {
 
 			$from_side = ($width - $box_width)/2;
 			// magic math to get vertical centering
-			$from_top = ($height + $total_textbox_height)/2 - ($tth - $box_height/2) - $textsize/2;
-			// $tth -= $box_height;
+			$from_top = ($height + $total_textbox_height)/2  - $tth - $linespacing/2;
+			delete_option('debug');
 
 			// add text to image
 			imagealphablending($im, true); // must be set to make sure font renders properly
@@ -283,16 +283,9 @@ class Image_Gen {
 
 		}
 
-		// header('Content-Type: image/png');
 		imagepng( $im, $filename );
 		imagedestroy( $im );
 		return $filename;
 	}
 
-}
-
-if ( ! function_exists( 'printer') ) {
-	function printer( $input ) {
-		echo '<pre>' . print_r( $input, true ) . '</pre>';
-	}
 }
