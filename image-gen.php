@@ -47,6 +47,10 @@ class Image_Gen {
 		wp_enqueue_script( 'wp-color-picker' );
 		wp_enqueue_style( 'wp-color-picker' );
 		wp_enqueue_script( 'image-gen', plugins_url('image-gen.js', __FILE__ ), array('jquery', 'wp-color-picker') );
+		wp_localize_script( 'image-gen', 'imageGen', array(
+			'ajaxUrl' => admin_url('admin-ajax.php'),
+			'checker' => plugins_url('white-checker.gif', __FILE__ ),
+		) );
 		?><div class="wrap">
 		<h2><?php _e( 'Image Gen', 'image-gen' ); ?></h2>
 
@@ -304,7 +308,7 @@ class Image_Gen {
 
 			$from_side = ($width - $box_width)/2;
 			// magic math to get vertical centering
-			$from_top = ($height + $total_textbox_height)/2  - $tth - $linespacing/2;
+			$from_top = ($height + $total_textbox_height)/2  - $tth - $linespacing/2 - $textsize/2;
 
 			// add text to image
 			imagealphablending($im, true); // must be set to make sure font renders properly
@@ -367,7 +371,7 @@ function random_horz_stripes_image( $im, $args ) {
 	return $im;
 }
 
-// add_filter( 'image_gen_image', 'low_to_high_grady_image', 10, 2 );
+add_filter( 'image_gen_image', 'low_to_high_grady_image', 10, 2 );
 function low_to_high_grady_image( $im, $args ) {
 
 	$greydiff = $args['highgrey'] - $args['lowgrey'];
@@ -388,7 +392,7 @@ function low_to_high_grady_image( $im, $args ) {
 	return $im;
 }
 
-add_filter( 'image_gen_image', 'high_to_low_grady_image', 10, 2 );
+// add_filter( 'image_gen_image', 'high_to_low_grady_image', 10, 2 );
 function high_to_low_grady_image( $im, $args ) {
 
 	$greydiff = $args['highgrey'] - $args['lowgrey'];
