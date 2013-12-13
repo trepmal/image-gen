@@ -58,6 +58,7 @@ class Image_Gen {
 		<p><label>Low Grey<input value="<?php echo $this->defaults['lowgrey']; ?>" name="gen[lowgrey]" type="number" min="0" max="255" /></label></p>
 		<p><label>High Grey<input value="<?php echo $this->defaults['highgrey']; ?>" name="gen[highgrey]" type="number" min="0" max="255" /></label></p>
 		<p><label>Blur Intensity<input value="<?php echo $this->defaults['blurintensity']; ?>" name="gen[blurintensity]" type="number" min="0" /></label></p>
+		<p><label>Alpha<input value="<?php echo $this->defaults['alpha']; ?>" name="gen[alpha]" type="number" min="0" max="127"/></label></p>
 
 		<p><label>Size<input value="<?php echo $this->defaults['textsize']; ?>" name="gen[textsize]" type="number" min="0" /></label></p>
 		<p><label>Linespacing<input value="<?php echo $this->defaults['linespacing']; ?>" name="gen[linespacing]" type="number" /></label></p>
@@ -226,6 +227,10 @@ class Image_Gen {
 		// alright, lets make an image
 		$im = imagecreatetruecolor( $width, $height );
 
+		// allow alpha transparency
+		imagealphablending($im, false);
+		imagesavealpha($im, true);
+
 		// make base image transparent
 		$black = imagecolorallocate( $im, 0, 0, 0 );
 		imagecolortransparent( $im, $black );
@@ -273,12 +278,14 @@ class Image_Gen {
 			// $tth -= $box_height;
 
 			// add text to image
+			imagealphablending($im, true); // must be set to make sure font renders properly
 			imagettftext( $im, $textsize, $angle, $from_side, $from_top, $textcolor, $font, $t );
 
 		}
 
 		// header('Content-Type: image/png');
 		imagepng( $im, $filename );
+		imagedestroy( $im );
 		return $filename;
 	}
 
