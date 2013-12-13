@@ -1,7 +1,7 @@
 Image Gen
 =========
 
-This was created from a half-formed idea I had. As such, it doesn't have a clear use as is, but should be extendable should around to that, or if you want to fork if and use it for your purposes.
+This was created from a half-formed idea I had. As such, it doesn't have a clear use as-is, but should be extendable should I or you get around to that.
 
 This image was actually generated:
 
