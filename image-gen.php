@@ -176,6 +176,35 @@ class Image_Gen {
 		return $id;
 
 	}
+
+	/* function get_image_args( $args ) {
+		$args = wp_parse_args( $args, $this->defaults );
+
+
+		// image
+		$args['width'] = intval( $args['width'] );
+		$args['height'] = intval( $args['height'] );
+		$args['lowgrey'] = intval( $args['lowgrey'] );
+		$args['highgrey'] = intval( $args['highgrey'] );
+		$args['alpha'] = intval( $args['alpha'] );
+		$args['blurintensity'] = intval( $args['blurintensity'] );
+		if ( count( explode('.', $args['filename'] ) ) < 2 ) $args['filename'] .= '.png';
+		$wp_upload_dir = wp_upload_dir();
+		$args['filename'] = trailingslashit( $wp_upload_dir['path'] ) . $args['filename'];
+
+		// text
+		$args['text'] = is_array( $args['text'] ) ? $args['text'] : explode( "\n", $args['text'] );
+		$args['text'] = array_map( 'trim', $text );
+		$args['text'] = array_filter( $text );
+		$args['linespacing'] = intval( $args['linespacing'] );
+			if ( count( $text ) < 2 ) $args['linespacing'] = 0;
+		$args['textsize'] = intval( $args['textsize'] );
+		$args['font'] = $args['font'];
+
+		return $args;
+
+	} */
+
 	/**
 	 * Generate a noisy image
 	 *
@@ -200,29 +229,29 @@ class Image_Gen {
 		)*/ $this->defaults );
 
 
-		$wp_upload_dir = wp_upload_dir();
-
-
 		// image
-		$width = intval( $args['width'] );
-		$height = intval( $args['height'] );
-		$lowgrey = intval( $args['lowgrey'] );
-		$highgrey = intval( $args['highgrey'] );
-		$alpha = intval( $args['alpha'] );
-		$blurintensity = intval( $args['blurintensity'] );
+		$args['width'] = intval( $args['width'] );
+		$args['height'] = intval( $args['height'] );
+		$args['lowgrey'] = intval( $args['lowgrey'] );
+		$args['highgrey'] = intval( $args['highgrey'] );
+		$args['alpha'] = intval( $args['alpha'] );
+		$args['blurintensity'] = intval( $args['blurintensity'] );
 		if ( count( explode('.', $args['filename'] ) ) < 2 ) $args['filename'] .= '.png';
-		$filename = trailingslashit( $wp_upload_dir['path'] ) . $args['filename'];
+		$wp_upload_dir = wp_upload_dir();
+		$args['filename'] = trailingslashit( $wp_upload_dir['path'] ) . $args['filename'];
 
 		// text
-		$text = is_array( $args['text'] ) ? $args['text'] : explode( "\n", $args['text'] );
-		$text = array_map( 'trim', $text );
-		$text = array_filter( $text );
-		$linespacing = intval( $args['linespacing'] );
-			if ( count( $text ) < 2 ) $linespacing = 0;
-		$textsize = intval( $args['textsize'] );
-		$font = $args['font'];
+		$args['text'] = is_array( $args['text'] ) ? $args['text'] : explode( "\n", $args['text'] );
+		$args['text'] = array_map( 'trim', $args['text'] );
+		$args['text'] = array_filter( $args['text'] );
+		$args['linespacing'] = intval( $args['linespacing'] );
+			if ( count( $args['text'] ) < 2 ) $args['linespacing'] = 0;
+		$args['textsize'] = intval( $args['textsize'] );
+		$args['font'] = $args['font'];
 
 		list( $fontcolorR, $fontcolorG, $fontcolorB ) = array_map( 'intval', $args['fontcolor'] );
+
+		extract( $args );
 
 		// alright, lets make an image
 		$im = imagecreatetruecolor( $width, $height );
@@ -236,13 +265,14 @@ class Image_Gen {
 		imagecolortransparent( $im, $black );
 
 		// add noise. pixel by pixel
-		for( $i = 0; $i < $width; $i++ ) {
-			for ($j = 0; $j < $height; $j++ ) {
-				$rand = rand( $lowgrey, $highgrey ); // grey
-				$color = imagecolorallocatealpha( $im, $rand, $rand, $rand, $alpha );
-				imagesetpixel( $im, $i, $j, $color );
-			}
-		}
+		$im = apply_filters_ref_array( 'image_gen_image', array( &$im, $args ) );
+		// for( $i = 0; $i < $width; $i++ ) {
+		// 	for ($j = 0; $j < $height; $j++ ) {
+		// 		$rand = rand( $lowgrey, $highgrey ); // grey
+		// 		$color = imagecolorallocatealpha( $im, $rand, $rand, $rand, $alpha );
+		// 		imagesetpixel( $im, $i, $j, $color );
+		// 	}
+		// }
 
 		for( $i = 1; $i < $blurintensity; $i++ )
 			imagefilter( $im, IMG_FILTER_GAUSSIAN_BLUR );
@@ -275,7 +305,6 @@ class Image_Gen {
 			$from_side = ($width - $box_width)/2;
 			// magic math to get vertical centering
 			$from_top = ($height + $total_textbox_height)/2  - $tth - $linespacing/2;
-			delete_option('debug');
 
 			// add text to image
 			imagealphablending($im, true); // must be set to make sure font renders properly
@@ -288,4 +317,94 @@ class Image_Gen {
 		return $filename;
 	}
 
+}
+
+
+/*
+	Different Image Filters, below!
+	Use only one at a time
+*/
+
+
+// add_filter( 'image_gen_image', 'noisy_image', 10, 2 );
+function noisy_image( $im, $args ) {
+
+		for( $i = 0; $i < $args['width']; $i++ ) {
+			for ($j = 0; $j < $args['height']; $j++ ) {
+				$rand = rand( $args['lowgrey'], $args['highgrey'] ); // grey
+				$color = imagecolorallocatealpha( $im, $rand, $rand, $rand, $args['alpha'] );
+				imagesetpixel( $im, $i, $j, $color );
+			}
+		}
+	return $im;
+}
+
+// add_filter( 'image_gen_image', 'random_vert_stripes_image', 10, 2 );
+function random_vert_stripes_image( $im, $args ) {
+
+		for( $i = 0; $i < $args['width']; $i++ ) {
+			$rand = rand( $args['lowgrey'], $args['highgrey'] ); // grey
+			for ($j = 0; $j < $args['height']; $j++ ) {
+				// $rand = rand( $args['lowgrey'], $args['highgrey'] ); // grey
+				$color = imagecolorallocatealpha( $im, $rand, $rand, $rand, $args['alpha'] );
+				imagesetpixel( $im, $i, $j, $color );
+			}
+		}
+	return $im;
+}
+
+// add_filter( 'image_gen_image', 'random_horz_stripes_image', 10, 2 );
+function random_horz_stripes_image( $im, $args ) {
+
+		for( $i = 0; $i < $args['height']; $i++ ) {
+			$rand = rand( $args['lowgrey'], $args['highgrey'] ); // grey
+			for ($j = 0; $j < $args['width']; $j++ ) {
+				// $rand = rand( $args['lowgrey'], $args['highgrey'] ); // grey
+				$color = imagecolorallocatealpha( $im, $rand, $rand, $rand, $args['alpha'] );
+				imagesetpixel( $im, $j, $i, $color );
+			}
+		}
+	return $im;
+}
+
+// add_filter( 'image_gen_image', 'low_to_high_grady_image', 10, 2 );
+function low_to_high_grady_image( $im, $args ) {
+
+	$greydiff = $args['highgrey'] - $args['lowgrey'];
+
+	$greyheight = ceil( $args['height'] / $greydiff );
+
+		$grey = $args['lowgrey'];
+		for( $i = 0; $i < $args['height']; $i++ ) {
+			if ( $i > 0 && $i % $greyheight == 0 ) {
+				++$grey;
+			}
+			for ($j = 0; $j < $args['width']; $j++ ) {
+				// $grey = rand( $args['lowgrey'], $args['highgrey'] ); // grey
+				$color = imagecolorallocatealpha( $im, $grey, $grey, $grey, $args['alpha'] );
+				imagesetpixel( $im, $j, $i, $color );
+			}
+		}
+	return $im;
+}
+
+add_filter( 'image_gen_image', 'high_to_low_grady_image', 10, 2 );
+function high_to_low_grady_image( $im, $args ) {
+
+	$greydiff = $args['highgrey'] - $args['lowgrey'];
+
+	$greyheight = ceil( $args['height'] / $greydiff );
+
+		$grey = $args['highgrey'];
+		for( $i = 0; $i < $args['height']; $i++ ) {
+			if ( $i > 0 && $i % $greyheight == 0 ) {
+				--$grey;
+			}
+			for ($j = 0; $j < $args['width']; $j++ ) {
+				// $grey = rand( $args['lowgrey'], $args['highgrey'] ); // grey
+				$color = imagecolorallocatealpha( $im, $grey, $grey, $grey, $args['alpha'] );
+				imagesetpixel( $im, $j, $i, $color );
+			}
+		}
+	return $im;
 }
