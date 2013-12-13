@@ -26,7 +26,8 @@ class Image_Gen {
 			'height' => 150,
 			'lowgrey' => 120,
 			'highgrey' => 150,
-			'blurfreqency' => 2,
+			'alpha' => 0,
+			'blurintensity' => 2,
 			'filename' => uniqid(),
 
 			'text' => array(),
@@ -49,23 +50,6 @@ class Image_Gen {
 		?><div class="wrap">
 		<h2><?php _e( 'Image Gen', 'image-gen' ); ?></h2>
 
-		<?php
-
-			// $id = $this->create_image( 'Test Image', array(
-			// 	'text' => array('line 1', 'line two', 'ಠ_ಠ'),
-			// 	'width' => 800,
-			// 	'height' => 400,
-			// 	'lowgrey' => 180,
-			// 	'highgrey' => 200,
-			// 	'fontcolor' => array( 0, 90, 0 )
-			// ) );
-
-			// echo wp_get_attachment_image( $id, 'full' );
-
-
-		$fontlist = glob( plugin_dir_path(__FILE__).'/fonts/*.otf' );
-
-		?>
 		<form method="post" id="image-gen">
 		<p><label>Title<input value="" name="gen[title]" type="text" /></label></p>
 		<p><label>Text</label><textarea name="gen[text]"></textarea></p>
@@ -73,10 +57,16 @@ class Image_Gen {
 		<p><label>Height<input value="<?php echo $this->defaults['height']; ?>" name="gen[height]" type="number" min="0" /></label></p>
 		<p><label>Low Grey<input value="<?php echo $this->defaults['lowgrey']; ?>" name="gen[lowgrey]" type="number" min="0" max="255" /></label></p>
 		<p><label>High Grey<input value="<?php echo $this->defaults['highgrey']; ?>" name="gen[highgrey]" type="number" min="0" max="255" /></label></p>
+		<p><label>Blur Intensity<input value="<?php echo $this->defaults['blurintensity']; ?>" name="gen[blurintensity]" type="number" min="0" /></label></p>
 
 		<p><label>Size<input value="<?php echo $this->defaults['textsize']; ?>" name="gen[textsize]" type="number" min="0" /></label></p>
 		<p><label>Linespacing<input value="<?php echo $this->defaults['linespacing']; ?>" name="gen[linespacing]" type="number" /></label></p>
 		<p><label>Font<select name="gen[font]"><?php
+
+		$fontlist = glob( plugin_dir_path(__FILE__).'/fonts/*.otf' );
+		// allow separate plugins to add/edit fonts. Should be True Type.
+		$fontlist = apply_filters( 'image_gen_fontlist', $fontlist );
+
 		foreach( $fontlist as $font ) {
 			$f = basename($font);
 
@@ -90,14 +80,44 @@ class Image_Gen {
 
 		</div><?php
 	}
+
+	/**
+	 * Convert RGB array to Hex Code
+	 *
+	 * @param array $input Array
+	 * @return string Proper hex value
+	 */
 	function _convert_array_to_hex( $input ) {
-		// convert an rgb array to a hex color
 		$input = array_map( 'dechex', $input );
 		foreach( $input as $k => $v)
 			$input[ $k ] = zeroise( $v, 2 );
 		return '#'.implode($input);
 	}
 
+	/**
+	 * Convert Hex Code array to RGB array
+	 *
+	 * @param string $input hex code
+	 * @return array RGB values
+	 */
+	function _convert_hex_to_array( $input ) {
+
+		$input = str_replace('#', '', $input );
+		// assuming a 6 digit hex, divide into array
+		$hex_array = str_split( $input, 2 );
+		// convert to decimal value
+		return array_map('hexdec', $hex_array );
+
+	}
+
+	/**
+	 * Ajax Callback
+	 *
+	 * Fix POST args as needed, pass along to creation function
+	 * Send back img html
+	 *
+	 * @return void
+	 */
 	function image_gen_cb() {
 		parse_str( $_POST['args'], $args );
 		$args = $args['gen'];
@@ -107,8 +127,7 @@ class Image_Gen {
 		unset( $args['title'] );
 
 		// coming from ajax, we'll have our color in the wrong format - fix it here
-		$fontcolor_hex = str_split( str_replace('#', '', $args['fontcolor'] ), 2 );
-		$args['fontcolor'] = array_map('hexdec', $fontcolor_hex );
+		$args['fontcolor'] = $this->_convert_hex_to_array( $args['fontcolor'] );
 
 		$id = $this->create_image( $title, $args );
 		$img = wp_get_attachment_image( $id, 'full' );
@@ -169,7 +188,7 @@ class Image_Gen {
 			'height' => 150,
 			'lowgrey' => 120,
 			'highgrey' => 150,
-			'blurfreqency' => 2,
+			'blurintensity' => 2,
 			'filename' => uniqid(),
 
 			'text' => array(),
@@ -188,35 +207,42 @@ class Image_Gen {
 		$height = intval( $args['height'] );
 		$lowgrey = intval( $args['lowgrey'] );
 		$highgrey = intval( $args['highgrey'] );
-		$blurfreqency = intval( $args['blurfreqency'] );
+		$alpha = intval( $args['alpha'] );
+		$blurintensity = intval( $args['blurintensity'] );
 		if ( count( explode('.', $args['filename'] ) ) < 2 ) $args['filename'] .= '.png';
 		$filename = trailingslashit( $wp_upload_dir['path'] ) . $args['filename'];
 
 		// text
 		$text = is_array( $args['text'] ) ? $args['text'] : explode( "\n", $args['text'] );
+		$text = array_map( 'trim', $text );
+		$text = array_filter( $text );
 		$linespacing = intval( $args['linespacing'] );
+			if ( count( $text ) < 2 ) $linespacing = 0;
 		$textsize = intval( $args['textsize'] );
 		$font = $args['font'];
 
 		list( $fontcolorR, $fontcolorG, $fontcolorB ) = array_map( 'intval', $args['fontcolor'] );
 
+		// alright, lets make an image
 		$im = imagecreatetruecolor( $width, $height );
+
+		// make base image transparent
+		$black = imagecolorallocate( $im, 0, 0, 0 );
+		imagecolortransparent( $im, $black );
+
+		// add noise. pixel by pixel
 		for( $i = 0; $i < $width; $i++ ) {
 			for ($j = 0; $j < $height; $j++ ) {
-				// $color = imagecolorallocate( $im, rand( 0, 255 ), rand( 0, 255 ), rand( 0, 255 ) );
 				$rand = rand( $lowgrey, $highgrey ); // grey
-				$color = imagecolorallocate( $im, $rand, $rand, $rand );
+				$color = imagecolorallocatealpha( $im, $rand, $rand, $rand, $alpha );
 				imagesetpixel( $im, $i, $j, $color );
 			}
 		}
-		// imagefilter( $im, IMG_FILTER_SMOOTH, 500 );
-		// imagefilter( $im, IMG_FILTER_PIXELATE, 2 );
-		for( $i = 1; $i < $blurfreqency; $i++ )
+
+		for( $i = 1; $i < $blurintensity; $i++ )
 			imagefilter( $im, IMG_FILTER_GAUSSIAN_BLUR );
-		// imagefilter( $im, IMG_FILTER_GAUSSIAN_BLUR );
 
 		$textcolor = imagecolorallocate( $im, $fontcolorR, $fontcolorG, $fontcolorB );
-		// The text to draw
 
 		$angle = 0;
 
@@ -239,13 +265,14 @@ class Image_Gen {
 
 			$box_width = $_box[4] - $_box[6];
 			$box_height = $_box[3] - $_box[5] + $linespacing;
+			$tth -= $box_height;
 
 			$from_side = ($width - $box_width)/2;
 			// magic math to get vertical centering
-			$from_top = ($height + $total_textbox_height)/2 - ($tth - $box_height) - $textsize/2;
-			$tth -= $box_height;
+			$from_top = ($height + $total_textbox_height)/2 - ($tth - $box_height/2) - $textsize/2;
+			// $tth -= $box_height;
 
-			// Add some grey shadow to the text
+			// add text to image
 			imagettftext( $im, $textsize, $angle, $from_side, $from_top, $textcolor, $font, $t );
 
 		}
