@@ -308,7 +308,7 @@ class Image_Gen {
 
 			$from_side = ($width - $box_width)/2;
 			// magic math to get vertical centering
-			$from_top = ($height + $total_textbox_height)/2  - $tth - $linespacing/2 - $textsize/2;
+			$from_top = ($height + $total_textbox_height)/2  - $tth - $linespacing/2;
 
 			// add text to image
 			imagealphablending($im, true); // must be set to make sure font renders properly

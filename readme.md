@@ -5,8 +5,12 @@ This was created from a half-formed idea I had. As such, it doesn't have a clear
 
 This image was actually generated:
 
-![actual generated image](screenshot-1.png)
+![actual generated image](example-1.png)
+
+This one too:
+
+![actual generated image](example-2.png)
 
 The currently-ugly options screen:
 
-![options, yes they're ugly](screenshot-2.png)
+![options, yes they're ugly](options.png)
