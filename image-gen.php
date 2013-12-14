@@ -16,19 +16,19 @@
 
 	function image_gen__get_defaults() {
 		$core_defaults = array(
-				'width' => 150,
-				'height' => 150,
-				'lowgrey' => 120,
-				'highgrey' => 150,
-				'alpha' => 0,
-				'blurintensity' => 2,
-				'filename' => uniqid(),
+			'width'         => 150,
+			'height'        => 150,
+			'lowgrey'       => 120,
+			'highgrey'      => 150,
+			'alpha'         => 0,
+			'blurintensity' => 2,
+			'filename'      => uniqid(),
 
-				'text' => array(),
-				'linespacing' => 10,
-				'textsize' => 40,
-				'font' => plugin_dir_path( __FILE__ ) . '/fonts/SourceSansPro-BoldIt.otf',
-				'fontcolor' => array(0, 80, 80),
+			'text'          => array(),
+			'linespacing'   => 10,
+			'textsize'      => 40,
+			'font'          => plugin_dir_path( __FILE__ ) . '/fonts/SourceSansPro-BoldIt.otf',
+			'fontcolor'     => array(0, 80, 80),
 		);
 
 		return get_option( 'image_gen_defaults', $core_defaults );
@@ -59,34 +59,33 @@
 
 		<?php $defaults = image_gen__get_defaults(); ?>
 
-		<p><label>Title<input value="" name="gen[title]" type="text" /></label></p>
-		<p><label>Text</label><textarea name="gen[text]"></textarea></p>
-		<p><label>Width<input value="<?php echo $defaults['width']; ?>" name="gen[width]" type="number" min="0" /></label></p>
-		<p><label>Height<input value="<?php echo $defaults['height']; ?>" name="gen[height]" type="number" min="0" /></label></p>
-		<p><label>Low Grey<input value="<?php echo $defaults['lowgrey']; ?>" name="gen[lowgrey]" type="number" min="0" max="255" /></label></p>
-		<p><label>High Grey<input value="<?php echo $defaults['highgrey']; ?>" name="gen[highgrey]" type="number" min="0" max="255" /></label></p>
-		<p><label>Blur Intensity<input value="<?php echo $defaults['blurintensity']; ?>" name="gen[blurintensity]" type="number" min="0" /></label></p>
-		<p><label>Alpha<input value="<?php echo $defaults['alpha']; ?>" name="gen[alpha]" type="number" min="0" max="127"/></label></p>
+		<p><label><?php _e( 'Title', 'image-gen' ); ?><input value="" name="gen[title]" type="text" /></label></p>
+		<p><label><?php _e( 'Text', 'image-gen' ); ?></label><textarea name="gen[text]"></textarea></p>
+		<p><label><?php _e( 'Width', 'image-gen' ); ?><input value="<?php echo $defaults['width']; ?>" name="gen[width]" type="number" min="0" /></label></p>
+		<p><label><?php _e( 'Height', 'image-gen' ); ?><input value="<?php echo $defaults['height']; ?>" name="gen[height]" type="number" min="0" /></label></p>
+		<p><label><?php _e( 'Low Grey', 'image-gen' ); ?><input value="<?php echo $defaults['lowgrey']; ?>" name="gen[lowgrey]" type="number" min="0" max="255" /></label></p>
+		<p><label><?php _e( 'High Grey', 'image-gen' ); ?><input value="<?php echo $defaults['highgrey']; ?>" name="gen[highgrey]" type="number" min="0" max="255" /></label></p>
+		<p><label><?php _e( 'Blur Intensity', 'image-gen' ); ?><input value="<?php echo $defaults['blurintensity']; ?>" name="gen[blurintensity]" type="number" min="0" /></label></p>
+		<p><label><?php _e( 'Alpha', 'image-gen' ); ?><input value="<?php echo $defaults['alpha']; ?>" name="gen[alpha]" type="number" min="0" max="127"/></label></p>
 
-		<p><label>Size<input value="<?php echo $defaults['textsize']; ?>" name="gen[textsize]" type="number" min="0" /></label></p>
-		<p><label>Linespacing<input value="<?php echo $defaults['linespacing']; ?>" name="gen[linespacing]" type="number" /></label></p>
-		<p><label>Font<select name="gen[font]"><?php
+		<p><label><?php _e( 'Size', 'image-gen' ); ?><input value="<?php echo $defaults['textsize']; ?>" name="gen[textsize]" type="number" min="0" /></label></p>
+		<p><label><?php _e( 'Linespacing', 'image-gen' ); ?><input value="<?php echo $defaults['linespacing']; ?>" name="gen[linespacing]" type="number" /></label></p>
+		<p><label><?php _e( 'Font', 'image-gen' ); ?><select name="gen[font]"><?php
 
 		$fontlist = glob( plugin_dir_path(__FILE__).'/fonts/*.otf' );
 		// allow separate plugins to add/edit fonts. Should be True Type.
 		$fontlist = apply_filters( 'image_gen_fontlist', $fontlist );
 
 		foreach( $fontlist as $font ) {
-			$f = basename($font);
-
+			$f = basename( $font );
 			$s = selected( $font, $defaults['font'], false );
 			echo "<option value='$font'$s>$f</option>";
 		}
 		?></select></label></p>
-		<p><label>Font color<input value="<?php echo image_gen_convert_array_to_hex( $defaults['fontcolor'] ); ?>" name="gen[fontcolor]" type="text" class="colorpicker" /></label></p>
+		<p><label><?php _e( 'Font color', 'image-gen' ); ?><input value="<?php echo image_gen_convert_array_to_hex( $defaults['fontcolor'] ); ?>" name="gen[fontcolor]" type="text" class="colorpicker" /></label></p>
 		<p>
-		<?php submit_button( 'Generate', 'primary', 'submit', false ); ?>
-		<?php submit_button('Save options as default', 'small', 'save-defaults', false ); ?>
+		<?php submit_button( __( 'Generate', 'image-gen' ), 'primary', 'submit', false ); ?>
+		<?php submit_button( __( 'Save options as default', 'image-gen' ), 'small', 'save-defaults', false ); ?>
 		</p>
 		</form>
 
