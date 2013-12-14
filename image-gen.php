@@ -13,18 +13,8 @@
  * Network: false
  */
 
-$image_gen = new Image_Gen();
 
-class Image_Gen {
-
-	function __construct() {
-		add_action( 'admin_menu', array( &$this, 'menu' ) );
-		add_action( 'wp_ajax_image_gen', array( &$this, 'image_gen_cb' ) );
-		add_action( 'wp_ajax_image_gen_defaults', array( &$this, 'image_gen_defaults_cb' ) );
-		$this->defaults = $this->get_defaults();
-	}
-
-	function get_defaults() {
+	function image_gen__get_defaults() {
 		$core_defaults = array(
 				'width' => 150,
 				'height' => 150,
@@ -41,16 +31,20 @@ class Image_Gen {
 				'fontcolor' => array(0, 80, 80),
 		);
 
-		// wp_parse_args( $core_defaults,  );
-		// return $core_defaults;
 		return get_option( 'image_gen_defaults', $core_defaults );
 	}
 
-	function menu() {
-		add_options_page( __( 'Image Gen', 'image-gen' ), __( 'Image Gen', 'image-gen' ), 'edit_posts', __CLASS__, array( &$this, 'page' ) );
+	/**
+	 * Create Generator Page
+	 *
+	 * @return void
+	 */
+	function image_gen__menu() {
+		add_media_page( __( 'Image Gen', 'image-gen' ), __( 'Image Gen', 'image-gen' ), 'edit_posts', 'image_gen', 'image_gen__page' );
 	}
+	add_action( 'admin_menu', 'image_gen__menu' );
 
-	function page() {
+	function image_gen__page() {
 		wp_enqueue_script( 'wp-color-picker' );
 		wp_enqueue_style( 'wp-color-picker' );
 		wp_enqueue_script( 'image-gen', plugins_url('image-gen.js', __FILE__ ), array('jquery', 'wp-color-picker') );
@@ -62,17 +56,20 @@ class Image_Gen {
 		<h2><?php _e( 'Image Gen', 'image-gen' ); ?></h2>
 
 		<form method="post" id="image-gen">
+
+		<?php $defaults = image_gen__get_defaults(); ?>
+
 		<p><label>Title<input value="" name="gen[title]" type="text" /></label></p>
 		<p><label>Text</label><textarea name="gen[text]"></textarea></p>
-		<p><label>Width<input value="<?php echo $this->defaults['width']; ?>" name="gen[width]" type="number" min="0" /></label></p>
-		<p><label>Height<input value="<?php echo $this->defaults['height']; ?>" name="gen[height]" type="number" min="0" /></label></p>
-		<p><label>Low Grey<input value="<?php echo $this->defaults['lowgrey']; ?>" name="gen[lowgrey]" type="number" min="0" max="255" /></label></p>
-		<p><label>High Grey<input value="<?php echo $this->defaults['highgrey']; ?>" name="gen[highgrey]" type="number" min="0" max="255" /></label></p>
-		<p><label>Blur Intensity<input value="<?php echo $this->defaults['blurintensity']; ?>" name="gen[blurintensity]" type="number" min="0" /></label></p>
-		<p><label>Alpha<input value="<?php echo $this->defaults['alpha']; ?>" name="gen[alpha]" type="number" min="0" max="127"/></label></p>
+		<p><label>Width<input value="<?php echo $defaults['width']; ?>" name="gen[width]" type="number" min="0" /></label></p>
+		<p><label>Height<input value="<?php echo $defaults['height']; ?>" name="gen[height]" type="number" min="0" /></label></p>
+		<p><label>Low Grey<input value="<?php echo $defaults['lowgrey']; ?>" name="gen[lowgrey]" type="number" min="0" max="255" /></label></p>
+		<p><label>High Grey<input value="<?php echo $defaults['highgrey']; ?>" name="gen[highgrey]" type="number" min="0" max="255" /></label></p>
+		<p><label>Blur Intensity<input value="<?php echo $defaults['blurintensity']; ?>" name="gen[blurintensity]" type="number" min="0" /></label></p>
+		<p><label>Alpha<input value="<?php echo $defaults['alpha']; ?>" name="gen[alpha]" type="number" min="0" max="127"/></label></p>
 
-		<p><label>Size<input value="<?php echo $this->defaults['textsize']; ?>" name="gen[textsize]" type="number" min="0" /></label></p>
-		<p><label>Linespacing<input value="<?php echo $this->defaults['linespacing']; ?>" name="gen[linespacing]" type="number" /></label></p>
+		<p><label>Size<input value="<?php echo $defaults['textsize']; ?>" name="gen[textsize]" type="number" min="0" /></label></p>
+		<p><label>Linespacing<input value="<?php echo $defaults['linespacing']; ?>" name="gen[linespacing]" type="number" /></label></p>
 		<p><label>Font<select name="gen[font]"><?php
 
 		$fontlist = glob( plugin_dir_path(__FILE__).'/fonts/*.otf' );
@@ -82,14 +79,15 @@ class Image_Gen {
 		foreach( $fontlist as $font ) {
 			$f = basename($font);
 
-			$s = selected( $font, $this->defaults['font'], false );
+			$s = selected( $font, $defaults['font'], false );
 			echo "<option value='$font'$s>$f</option>";
 		}
 		?></select></label></p>
-		<p><label>Font color <input value="<?php echo $this->_convert_array_to_hex( $this->defaults['fontcolor'] ); ?>" name="gen[fontcolor]" type="text" class="colorpicker" /></label></p>
+		<p><label>Font color<input value="<?php echo image_gen_convert_array_to_hex( $defaults['fontcolor'] ); ?>" name="gen[fontcolor]" type="text" class="colorpicker" /></label></p>
+		<p>
 		<?php submit_button( 'Generate', 'primary', 'submit', false ); ?>
-		<?php // submit_button('Save options as default', 'small', 'save-defaults', false ); ?>
-<input type="submit" name="save-defaults" id="save-defaults" class="button button-small" value="Save options as default">
+		<?php submit_button('Save options as default', 'small', 'save-defaults', false ); ?>
+		</p>
 		</form>
 
 		</div><?php
@@ -101,7 +99,7 @@ class Image_Gen {
 	 * @param array $input Array
 	 * @return string Proper hex value
 	 */
-	function _convert_array_to_hex( $input ) {
+	function image_gen_convert_array_to_hex( $input ) {
 		$input = array_map( 'dechex', $input );
 		foreach( $input as $k => $v)
 			$input[ $k ] = zeroise( $v, 2 );
@@ -114,7 +112,7 @@ class Image_Gen {
 	 * @param string $input hex code
 	 * @return array RGB values
 	 */
-	function _convert_hex_to_array( $input ) {
+	function image_gen_convert_hex_to_array( $input ) {
 
 		$input = str_replace('#', '', $input );
 		// assuming a 6 digit hex, divide into array
@@ -131,7 +129,7 @@ class Image_Gen {
 	 *
 	 * @return void
 	 */
-	function image_gen_cb() {
+	function image_gen__image_gen_cb() {
 		parse_str( $_POST['args'], $args );
 		$args = $args['gen'];
 
@@ -140,13 +138,14 @@ class Image_Gen {
 		unset( $args['title'] );
 
 		// coming from ajax, we'll have our color in the wrong format - fix it here
-		$args['fontcolor'] = $this->_convert_hex_to_array( $args['fontcolor'] );
+		$args['fontcolor'] = image_gen_convert_hex_to_array( $args['fontcolor'] );
 
-		$id = $this->create_image( $title, $args );
+		$id = image_gen__create_image( $title, $args );
 		$img = wp_get_attachment_image( $id, 'full' );
 
 		wp_send_json_success( $img );
 	}
+	add_action( 'wp_ajax_image_gen', 'image_gen__image_gen_cb' );
 
 	/**
 	 * Ajax Callback
@@ -156,7 +155,7 @@ class Image_Gen {
 	 *
 	 * @return void
 	 */
-	function image_gen_defaults_cb() {
+	function image_gen__image_gen_defaults_cb() {
 		parse_str( $_POST['args'], $args );
 		$args = $args['gen'];
 
@@ -165,14 +164,15 @@ class Image_Gen {
 		unset( $args['title'] );
 
 		// coming from ajax, we'll have our color in the wrong format - fix it here
-		$args['fontcolor'] = $this->_convert_hex_to_array( $args['fontcolor'] );
+		$args['fontcolor'] = image_gen_convert_hex_to_array( $args['fontcolor'] );
 
-		$args = wp_parse_args( $args, $this->defaults );
+		$args = wp_parse_args( $args, image_gen__get_defaults() );
 
 		update_option( 'image_gen_defaults', $args );
 
 		wp_send_json_success( $args );
 	}
+	add_action( 'wp_ajax_image_gen_defaults', 'image_gen__image_gen_defaults_cb' );
 
 	/**
 	 * Create Image
@@ -181,12 +181,12 @@ class Image_Gen {
 	 * @param array $args Array of rules for the generated image
 	 * @return int ID of image
 	 */
-	function create_image( $title, $args=array() ) {
+	function image_gen__create_image( $title, $args=array() ) {
 
 		$name = sanitize_title( $title ). '.png';
 
-		$path = $this->build_image( $args );
-		$id = $this->move_to_wp( $path, $name, $title );
+		$path = image_gen__build_image( $args );
+		$id = image_gen__move_to_wp( $path, $name, $title );
 
 		return $id;
 	}
@@ -199,7 +199,7 @@ class Image_Gen {
 	 * @param string $title Title of image in Media Library
 	 * @return int ID of image
 	 */
-	function move_to_wp( $path, $name, $title ) {
+	function image_gen__move_to_wp( $path, $name, $title ) {
 
 		$file_array = array();
 		$file_array['tmp_name'] = $path;
@@ -219,24 +219,48 @@ class Image_Gen {
 	 * Build image
 	 *
 	 * @param array $args Array of rules for the generated image
+	 *
+	 * [--width=<width>]
+	 * : Width for the image in pixels, default 150
+	 *
+	 * [--height=<height>]
+	 * : Height for the image in pixels, default 150
+	 *
+	 * [--lowgrey=<lowgrey>]
+	 * : Lower grey value (0-255), default 120
+	 *
+	 * [--highgrey=<highgrey>]
+	 * : Higher grey value (0-255), default 150
+	 *
+	 * [--alpha=<alpha>]
+	 * : Alpha transparancy (0-127), default 0
+	 *
+	 * [--blurintensity=<blurintensity>]
+	 * : How often to apply the blur effect, default 2
+	 *
+	 * [--filename=<filename>]
+	 * : old value
+	 *
+	 * [--text=<text>]
+	 * : Text to place on the image, default empty
+	 *
+	 * [--linespacing=<linespacing>]
+	 * : Linespacing in pixels, default 10
+	 *
+	 * [--textsize=<textsize>]
+	 * : Text size in pixels, default 40
+	 *
+	 * [--font=<font>]
+	 * : Path to font true type file, default {plugin-path}/fonts/SourceSansPro-BoldIt.otf
+	 *
+	 * [--fontcolor=<fontcolor>]
+	 * : Font color. Either RGB as an array or a hexcode string, default array(0, 80, 80),
+	 *
 	 * @return string Path of generated image
 	 */
-	function build_image( $args = array() ) {
+	function image_gen__build_image( $args = array() ) {
 
-		$args = wp_parse_args( $args, /*array(
-			'width' => 150,
-			'height' => 150,
-			'lowgrey' => 120,
-			'highgrey' => 150,
-			'blurintensity' => 2,
-			'filename' => uniqid(),
-
-			'text' => array(),
-			'linespacing' => 10,
-			'textsize' => 40,
-			'font' => plugin_dir_path( __FILE__ ) . '/SourceSansPro-Black.otf',
-			'fontcolor' => array(0, 0, 0),
-		)*/ $this->defaults );
+		$args = wp_parse_args( $args, image_gen__get_defaults() );
 
 
 		// image
@@ -259,6 +283,7 @@ class Image_Gen {
 		$args['textsize'] = intval( $args['textsize'] );
 		$args['font'] = $args['font'];
 
+		$args['fontcolor'] = is_array( $args['fontcolor'] ) ? $args['fontcolor'] : image_gen_convert_hex_to_array( $args['fontcolor'] );
 		list( $fontcolorR, $fontcolorG, $fontcolorB ) = array_map( 'intval', $args['fontcolor'] );
 
 		extract( $args );
@@ -276,13 +301,6 @@ class Image_Gen {
 
 		// add noise. pixel by pixel
 		$im = apply_filters_ref_array( 'image_gen_image', array( &$im, $args ) );
-		// for( $i = 0; $i < $width; $i++ ) {
-		// 	for ($j = 0; $j < $height; $j++ ) {
-		// 		$rand = rand( $lowgrey, $highgrey ); // grey
-		// 		$color = imagecolorallocatealpha( $im, $rand, $rand, $rand, $alpha );
-		// 		imagesetpixel( $im, $i, $j, $color );
-		// 	}
-		// }
 
 		for( $i = 1; $i < $blurintensity; $i++ )
 			imagefilter( $im, IMG_FILTER_GAUSSIAN_BLUR );
@@ -327,8 +345,6 @@ class Image_Gen {
 		return $filename;
 	}
 
-}
-
 
 /*
 	Different Image Filters, below!
@@ -336,8 +352,8 @@ class Image_Gen {
 */
 
 
-// add_filter( 'image_gen_image', 'noisy_image', 10, 2 );
-function noisy_image( $im, $args ) {
+// add_filter( 'image_gen_image', 'image_gen_style_noisy_image', 10, 2 );
+function image_gen_style_noisy_image( $im, $args ) {
 
 		for( $i = 0; $i < $args['width']; $i++ ) {
 			for ($j = 0; $j < $args['height']; $j++ ) {
@@ -349,8 +365,8 @@ function noisy_image( $im, $args ) {
 	return $im;
 }
 
-// add_filter( 'image_gen_image', 'random_vert_stripes_image', 10, 2 );
-function random_vert_stripes_image( $im, $args ) {
+// add_filter( 'image_gen_image', 'image_gen_style_random_vert_stripes_image', 10, 2 );
+function image_gen_style_random_vert_stripes_image( $im, $args ) {
 
 		for( $i = 0; $i < $args['width']; $i++ ) {
 			$rand = rand( $args['lowgrey'], $args['highgrey'] ); // grey
@@ -363,8 +379,8 @@ function random_vert_stripes_image( $im, $args ) {
 	return $im;
 }
 
-// add_filter( 'image_gen_image', 'random_horz_stripes_image', 10, 2 );
-function random_horz_stripes_image( $im, $args ) {
+// add_filter( 'image_gen_image', 'image_gen_style_random_horz_stripes_image', 10, 2 );
+function image_gen_style_random_horz_stripes_image( $im, $args ) {
 
 		for( $i = 0; $i < $args['height']; $i++ ) {
 			$rand = rand( $args['lowgrey'], $args['highgrey'] ); // grey
@@ -377,8 +393,8 @@ function random_horz_stripes_image( $im, $args ) {
 	return $im;
 }
 
-add_filter( 'image_gen_image', 'low_to_high_grady_image', 10, 2 );
-function low_to_high_grady_image( $im, $args ) {
+add_filter( 'image_gen_image', 'image_gen_style_low_to_high_grady_image', 10, 2 );
+function image_gen_style_low_to_high_grady_image( $im, $args ) {
 
 	$greydiff = $args['highgrey'] - $args['lowgrey'];
 
@@ -398,8 +414,8 @@ function low_to_high_grady_image( $im, $args ) {
 	return $im;
 }
 
-// add_filter( 'image_gen_image', 'high_to_low_grady_image', 10, 2 );
-function high_to_low_grady_image( $im, $args ) {
+// add_filter( 'image_gen_image', 'image_gen_style_high_to_low_grady_image', 10, 2 );
+function image_gen_style_high_to_low_grady_image( $im, $args ) {
 
 	$greydiff = $args['highgrey'] - $args['lowgrey'];
 
@@ -417,4 +433,8 @@ function high_to_low_grady_image( $im, $args ) {
 			}
 		}
 	return $im;
+}
+
+if ( defined('WP_CLI') && WP_CLI ) {
+	include plugin_dir_path( __FILE__ ) . '/image-gen-cli.php';
 }
