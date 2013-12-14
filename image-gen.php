@@ -481,6 +481,45 @@ function image_gen_style_high_to_low_grady_image( $im, $args ) {
 }
 // add_filter( 'image_gen_image', 'image_gen_style_high_to_low_grady_image', 10, 2 );
 
+/**
+ * Filter callback. Give image background colored horizontal gradient
+ *
+ * NOTE: the default generator form doesn't (yet) offer a color field for this
+ *       so the color must be set manually or you'll still end up with grey
+ *       you can uncomment and play with the randomly selected colors
+ *
+ * @param image resource $im GD Image Resource
+ * @param array $args Arguments for image creation
+ * @return GD image resource
+ */
+function image_gen_color_grady_image( $im, $args ) {
+
+	$top = $args['lowgrey'];
+	// $top = array( rand(0,255), rand(0,255), rand(0,255) );
+	$top = is_array( $top ) ? $top : image_gen_convert_grey_to_array( $top );
+
+	$bottom = $args['highgrey'];
+	// $bottom = array( rand(0,255), rand(0,255), rand(0,255) );
+	$bottom = is_array( $bottom ) ? $bottom : image_gen_convert_grey_to_array( $bottom );
+
+	$w = $args['width'];
+	$h = $args['height'];
+
+	for( $x=0; $x <= $h; $x++ ) { // go down
+
+		$r = $top[0] - ( ( ( $top[0] - $bottom[0] ) / $h ) * $x );
+		$g = $top[1] - ( ( ( $top[1] - $bottom[1] ) / $h ) * $x );
+		$b = $top[2] - ( ( ( $top[2] - $bottom[2] ) / $h ) * $x );
+
+		for( $y=0; $y <= $w; $y++) { // and across
+			$col=imagecolorallocate( $im, $r, $g, $b );
+			imagesetpixel( $im, $y-1, $x-1, $col );
+		}
+	}
+	return $im;
+}
+// add_filter( 'image_gen_image', 'image_gen_color_grady_image', 10, 2 );
+
 if ( defined('WP_CLI') && WP_CLI ) {
 	include plugin_dir_path( __FILE__ ) . '/image-gen-cli.php';
 }
