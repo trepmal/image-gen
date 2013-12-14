@@ -2,7 +2,7 @@
 /*
  * Plugin Name: Image Gen
  * Plugin URI: trepmal.com
- * Description:
+ * Description: Image generator.
  * Version:
  * Author: Kailey Lampert
  * Author URI: kaileylampert.com
@@ -10,10 +10,15 @@
  * License URI: http://www.gnu.org/licenses/gpl-2.0.html
  * TextDomain: image-gen
  * DomainPath:
- * Network: false
+ * Network:
  */
 
 
+	/**
+	 * Get defaults
+	 *
+	 * @return array Defaults for image generation
+	 */
 	function image_gen__get_defaults() {
 		$core_defaults = array(
 			'width'         => 150,
@@ -44,6 +49,11 @@
 	}
 	add_action( 'admin_menu', 'image_gen__menu' );
 
+	/**
+	 * Build Generator Page
+	 *
+	 * @return void
+	 */
 	function image_gen__page() {
 		wp_enqueue_script( 'wp-color-picker' );
 		wp_enqueue_style( 'wp-color-picker' );
@@ -106,7 +116,7 @@
 	}
 
 	/**
-	 * Convert Hex Code array to RGB array
+	 * Convert Hex Code to RGB array
 	 *
 	 * @param string $input hex code
 	 * @return array RGB values
@@ -175,6 +185,8 @@
 
 	/**
 	 * Create Image
+	 *
+	 * Creates image and saves to WP
 	 *
 	 * @param string $title Title of image in Media Library
 	 * @param array $args Array of rules for the generated image
@@ -350,8 +362,13 @@
 	Use only one at a time
 */
 
-
-// add_filter( 'image_gen_image', 'image_gen_style_noisy_image', 10, 2 );
+/**
+ * Filter callback. Make the image background noisy
+ *
+ * @param image resource $im GD Image Resource
+ * @param array $args Arguments for image creation
+ * @return GD image resource
+ */
 function image_gen_style_noisy_image( $im, $args ) {
 
 		for( $i = 0; $i < $args['width']; $i++ ) {
@@ -363,8 +380,15 @@ function image_gen_style_noisy_image( $im, $args ) {
 		}
 	return $im;
 }
+// add_filter( 'image_gen_image', 'image_gen_style_noisy_image', 10, 2 );
 
-// add_filter( 'image_gen_image', 'image_gen_style_random_vert_stripes_image', 10, 2 );
+/**
+ * Filter callback. Give image background random vertical stripes
+ *
+ * @param image resource $im GD Image Resource
+ * @param array $args Arguments for image creation
+ * @return GD image resource
+ */
 function image_gen_style_random_vert_stripes_image( $im, $args ) {
 
 		for( $i = 0; $i < $args['width']; $i++ ) {
@@ -377,8 +401,15 @@ function image_gen_style_random_vert_stripes_image( $im, $args ) {
 		}
 	return $im;
 }
+// add_filter( 'image_gen_image', 'image_gen_style_random_vert_stripes_image', 10, 2 );
 
-// add_filter( 'image_gen_image', 'image_gen_style_random_horz_stripes_image', 10, 2 );
+/**
+ * Filter callback. Give image background random horizontal stripes
+ *
+ * @param image resource $im GD Image Resource
+ * @param array $args Arguments for image creation
+ * @return GD image resource
+ */
 function image_gen_style_random_horz_stripes_image( $im, $args ) {
 
 		for( $i = 0; $i < $args['height']; $i++ ) {
@@ -391,8 +422,15 @@ function image_gen_style_random_horz_stripes_image( $im, $args ) {
 		}
 	return $im;
 }
+// add_filter( 'image_gen_image', 'image_gen_style_random_horz_stripes_image', 10, 2 );
 
-add_filter( 'image_gen_image', 'image_gen_style_low_to_high_grady_image', 10, 2 );
+/**
+ * Filter callback. Give image background dark-to-light horizontal gradient
+ *
+ * @param image resource $im GD Image Resource
+ * @param array $args Arguments for image creation
+ * @return GD image resource
+ */
 function image_gen_style_low_to_high_grady_image( $im, $args ) {
 
 	$greydiff = $args['highgrey'] - $args['lowgrey'];
@@ -412,8 +450,15 @@ function image_gen_style_low_to_high_grady_image( $im, $args ) {
 		}
 	return $im;
 }
+add_filter( 'image_gen_image', 'image_gen_style_low_to_high_grady_image', 10, 2 );
 
-// add_filter( 'image_gen_image', 'image_gen_style_high_to_low_grady_image', 10, 2 );
+/**
+ * Filter callback. Give image background light-to-dark horizontal gradient
+ *
+ * @param image resource $im GD Image Resource
+ * @param array $args Arguments for image creation
+ * @return GD image resource
+ */
 function image_gen_style_high_to_low_grady_image( $im, $args ) {
 
 	$greydiff = $args['highgrey'] - $args['lowgrey'];
@@ -433,6 +478,7 @@ function image_gen_style_high_to_low_grady_image( $im, $args ) {
 		}
 	return $im;
 }
+// add_filter( 'image_gen_image', 'image_gen_style_high_to_low_grady_image', 10, 2 );
 
 if ( defined('WP_CLI') && WP_CLI ) {
 	include plugin_dir_path( __FILE__ ) . '/image-gen-cli.php';
