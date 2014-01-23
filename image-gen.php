@@ -397,7 +397,7 @@ function image_gen_style_noisy_image( $im, $args ) {
 		}
 	return $im;
 }
-add_filter( 'image_gen_image', 'image_gen_style_noisy_image', 10, 2 );
+// add_filter( 'image_gen_image', 'image_gen_style_noisy_image', 10, 2 );
 
 /**
  * Filter callback. Give image background random vertical stripes
@@ -448,6 +448,10 @@ function image_gen_style_random_horz_stripes_image( $im, $args ) {
  */
 function image_gen_style_low_to_high_grady_image( $im, $args ) {
 
+	if ( $args['lowgrey'] == $args['highgrey'] ) {
+		return image_gen_style_solid_image( $im, $args );
+	}
+
 	for( $i = 0; $i < $args['height']; $i++ ) {
 		$grey = $args['lowgrey'] - ( ( ( $args['lowgrey'] - $args['highgrey'] ) / $args['width'] ) * $i );
 		for ($j = 0; $j < $args['width']; $j++ ) {
@@ -459,6 +463,29 @@ function image_gen_style_low_to_high_grady_image( $im, $args ) {
 	return $im;
 }
 add_filter( 'image_gen_image', 'image_gen_style_low_to_high_grady_image', 10, 2 );
+
+/**
+ * Filter callback. Give image solid background
+ *
+ * @param image resource $im GD Image Resource
+ * @param array $args Arguments for image creation
+ * @return GD image resource
+ */
+function image_gen_style_solid_image( $im, $args ) {
+
+	// for( $i = 0; $i < $args['height']; $i++ ) {
+	// 	$grey = $args['highgrey'] - ( ( ( $args['highgrey'] - $args['lowgrey'] ) / $args['height'] ) * $i );
+	// 	for ($j = 0; $j < $args['width']; $j++ ) {
+	// 		$color = imagecolorallocatealpha( $im, $grey, $grey, $grey, $args['alpha'] );
+	// 		imagesetpixel( $im, $j, $i, $color );
+	// 	}
+	// }
+	$color = imagecolorallocatealpha( $im, $args['lowgrey'], $args['lowgrey'], $args['lowgrey'], $args['alpha'] );
+	imagefilledrectangle( $im, 0, 0, $args['width'], $args['height'], $color );
+
+	return $im;
+}
+// add_filter( 'image_gen_image', 'image_gen_style_solid_image', 10, 2 );
 
 /**
  * Filter callback. Give image background light-to-dark horizontal gradient
