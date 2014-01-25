@@ -17,6 +17,8 @@ The currently-ugly options screen:
 
 ![options, yes they're ugly](options.png)
 
+The WP-CLI integration works really well with [https://github.com/trepmal/post-gen](Post Gen).
+
 ```
 SYNOPSIS
 
