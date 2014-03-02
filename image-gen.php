@@ -70,7 +70,7 @@ function image_gen__page() {
 	<?php $defaults = image_gen__get_defaults(); ?>
 
 	<p><label><?php _e( 'Title', 'image-gen' ); ?><input value="" name="gen[title]" type="text" /></label></p>
-	<p><label><?php _e( 'Text', 'image-gen' ); ?></label><textarea name="gen[text]"><?php echo $defaults['text']; ?></textarea></p>
+	<p><label><?php _e( 'Text', 'image-gen' ); ?></label><textarea name="gen[text]"><?php echo implode( "\n", $defaults['text'] ); ?></textarea></p>
 	<p><label><?php _e( 'Width', 'image-gen' ); ?><input value="<?php echo $defaults['width']; ?>" name="gen[width]" type="number" min="0" /></label></p>
 	<p><label><?php _e( 'Height', 'image-gen' ); ?><input value="<?php echo $defaults['height']; ?>" name="gen[height]" type="number" min="0" /></label></p>
 	<p><label><?php _e( 'Low Grey', 'image-gen' ); ?><input value="<?php echo $defaults['lowgrey']; ?>" name="gen[lowgrey]" type="number" min="0" max="255" /></label></p>
