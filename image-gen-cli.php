@@ -65,7 +65,50 @@ class Image_Gen_CLI extends WP_CLI_Command {
 	}
 
 
+	/**
+	 * Attach Images
+	 *
+	 * ## OPTIONS
+	 *
+	 * <count>
+	 * : Number of posts to attach an image to. Default 100
+	 *
+	 * [--post-type=<post-type>]
+	 * : Post type to attach images to. Default 'post'
+	 *
+	 * [--order=<order>]
+	 * : Order used to get the posts to attach images to.
+	 * Options - DESC, ASC, RAND. Default random order.
+	 *
+	 * [--size=<size>]
+	 * : Image size, either thumbnail, medium, large, full, random or size set with add_image_size().
+	 * Default none (uses the post thumbnail size set by theme).
+	 *
+	 * [--include-attached]
+	 * : Include already attached images to attach to posts.
+	 *
+	 * [--insert]
+	 * : Insert image in post content instead of adding as a post thumbnail.
+	 *
+	 * [--linkto=<linkto>]
+	 * : Link to file (size) or attachment page if --insert is used
+	 * Options - 'file', 'post' or 'none'. Default file.
+	 *
+	 * [--align=<align>]
+	 * : Aligment of image if --insert is used.
+	 * Options - 'center', 'left', 'right', 'random'. Default none.
+	 *
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp image-gen attach 10 --align=random  --size=random
+	 *
+	 */
+	public function attach( $args = array(), $assoc_args = array() ) {
+		list( $count ) = $args;
 
+		image_gen__attach_images( $count, $assoc_args );
+	}
 }
 
 WP_CLI::add_command( 'image-gen', 'Image_Gen_CLI' );
