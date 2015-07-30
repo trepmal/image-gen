@@ -3,7 +3,7 @@ Image Gen
 
 This was created from a half-formed idea I had. As such, it doesn't have a clear use as-is, but should be extendable should I or you get around to that.
 
-Essentially, you can fill in some options and generate an image. The image will then be added to the Media Library. After generating images you can attach them to post with the `attach` WP-CLI command. 
+Essentially, you can fill in some options and generate an image. The image will then be added to the Media Library. After generating images you can attach them to posts with the `attach` WP-CLI command.
 
 This image was actually generated:
 
