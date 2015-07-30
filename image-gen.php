@@ -370,6 +370,189 @@ function image_gen__build_image( $args = array() ) {
 	return $filename;
 }
 
+/**
+ * Attach images to posts as post thumbnails or inserted in post content
+ *
+ * @param int     $count Number of posts to attach an image to. Default 100
+ * @param array   $args  Array of rules for to attach images
+ *
+ * [--post-type=<post-type>]
+ * : Post type to attach images to. Default 'post'
+ *
+ * [--order=<order>]
+ * : Order used to get the posts to attach images to.
+ * Options - DESC, ASC, RAND. Default random order.
+ *
+ * [--size=<size>]
+ * : Image size, either thumbnail, medium, large, random or size set with add_image_size().
+ * Default none (uses the post thumbnail size set by theme).
+ *
+ * [--include-attached]
+ * : Include already attached images to attach to posts.
+ *
+ * [--insert]
+ * : Insert image in post content instead of adding as a post thumbnail.
+ *
+ * [--linkto=<linkto>]
+ * : Link to file (size) or attachment page if --insert is used
+ * Options - 'file', 'post' or 'none'. Default file.
+ *
+ * [--align=<align>]
+ * : Aligment of image if --insert is used.
+ * Options - 'center', 'left', 'right', 'random'. Default none.
+ *
+ */
+function image_gen__attach_images( $count, $args=array() ) {
+
+	$defaults = array(
+		'post_type'        => 'post',
+		'order'            => 'RAND',
+		'size'             => '',
+		'include-attached' => 0,
+		'insert'           => 0,
+		'linkto'           => 'file',
+		'align'            => '',
+	);
+
+	$args = wp_parse_args( $args, $defaults );
+
+	if ( !post_type_exists( $args['post_type'] ) ) {
+		WP_CLI::error( sprintf( "'%s' is not a registered post type.", $args['post_type'] ) );
+	}
+
+	if ( !in_array( $args['order'], array( 'DESC', 'ASC', 'RAND' ) ) ) {
+		WP_CLI::error( "[--order=<order>] should be one of these values 'DESC', 'ASC' or 'RAND'" );
+	}
+
+	if ( !in_array( $args['linkto'], array( 'file', 'post', 'none' ) ) ) {
+		WP_CLI::error( "[--linkto=<linkto>] should be one of these values: 'file', 'post' or 'none'" );
+	}
+
+	if ( '' !==  $args['size'] ) {
+		$image_sizes = get_intermediate_image_sizes();
+		$image_sizes[] = 'random';
+		if ( !in_array( $args['size'], $image_sizes ) ) {
+			WP_CLI::error( sprintf( "'%s' is not a correct image size.", $args['size'] ) );
+		}
+	}
+
+	$posts = get_posts( array(
+			'post_type'      => $args['post_type'],
+			'order'          => $args['order'],
+			'posts_per_page' => absint( $count ),
+			'fields'         => 'ids',
+		)
+	);
+
+	if ( empty( $posts ) ) {
+		WP_CLI::error( sprintf( "No posts found for post type %s.", $args['post_type'] ) );
+	}
+
+	$notify = \WP_CLI\Utils\make_progress_bar( 'Attaching images', (int) count( $posts ) );
+	$attached = 0;
+
+	foreach ( $posts as $post ) {
+		$image_id = image_gen__get_random_image_id( $args['include-attached'] );
+
+		if ( is_null( $image_id ) ) {
+			continue;
+		}
+
+		if ( !$args['insert'] ) {
+			set_post_thumbnail ( $post, $image_id );
+		} else {
+
+			$content  = get_post_field ( 'post_content', $post );
+
+			// Remove multiple lines with only whitespace characters
+			$content = preg_replace( '/^\s*$/', "", $content );
+
+			// Split at empty lines
+			$content = preg_split( '/^\n+|^[\t\s]*\n+/m', $content, -1, PREG_SPLIT_NO_EMPTY );
+
+			$size  =  ( '' !==  $args['size'] ) ? $args['size'] : 'thumbnail';
+
+			if ( 'random' === $size ) {
+				unset( $image_sizes['random'] );
+				$size = $image_sizes[ array_rand( $image_sizes ) ];
+			}
+
+			$classes = array( 'center', 'left', 'right', 'random' );
+			$attr    = array( 'class' => 'attachment-' . $size );
+			$url     = '';
+
+			if ( in_array( $args['align'], $classes ) ) {
+				if ( 'random' === $args['align'] ) {
+					unset( $classes[3] );
+					$attr['class'] .= ' align' . $classes[ array_rand( $classes ) ];
+				} else {
+					$attr['class'] .= ' align' . $args['align'];
+				}
+			}
+
+			$image = wp_get_attachment_image( $image_id, $size, false, $attr );
+
+			if ( 'file' === $args['linkto'] ) {
+				$url = wp_get_attachment_url( $image_id );
+			}
+
+			if ( 'post' === $args['linkto'] ) {
+				$url = get_attachment_link( $image_id );
+			}
+
+			$image = $url ? "<a href='{$url}'>{$image}</a>" : $image;
+
+			// Insert image into content.
+			$insert = array_rand( $content );
+			array_splice( $content , $insert, 0 , $image );
+
+			$content = implode( "\n\n",  $content );
+
+			wp_update_post( array(
+					'ID'          => $post,
+					'post_content' => $content,
+				)
+			);
+		}
+
+		wp_update_post( array(
+				'ID'          => $image_id,
+				'post_parent' => $post,
+			)
+		);
+
+		$notify->tick();
+		++$attached;
+	}
+
+	$notify->finish();
+
+	if ( $attached ) {
+		WP_CLI::success( sprintf( "%s images attached.", $attached ) );
+	} else {
+		WP_CLI::warning( "No images attached." );
+	}
+}
+
+/**
+ * Gets a random image from the media library.
+ *
+ * @param bool    $attached If attached images should be included. Default false
+ * @return int ID of image
+ */
+function image_gen__get_random_image_id( $attached = false ) {
+	global $wpdb;
+
+	$where = !$attached ? "AND p.post_parent = 0" : '';
+
+	$query = "SELECT p.ID FROM $wpdb->posts p
+          WHERE p.post_type = 'attachment' AND (p.post_mime_type LIKE 'image/%')
+          AND (p.post_status = 'inherit') {$where}
+          ORDER BY RAND() DESC LIMIT 1";
+
+	return  $wpdb->get_var( $query );
+}
+
 
 /*
 	Sample image filters below. For example
